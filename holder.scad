@@ -4,25 +4,16 @@ $fn = model_fragment_count;
 collar_color = "Black";
 rod_color = "Black";
 mount_boss_color = "Black";
-thread_preview_color = "DeepSkyBlue";
 
-male_thread_root_diameter = 56.35;
-male_thread_crest_diameter = 58.00;
-thread_axial_height = 2.70;
-thread_axial_gap = 4.20;
-threaded_section_height = 24.00;
-thread_start_count = 1;
-thread_twist_direction = -1;
-thread_phase_degrees = 0.00;
+screen_outer_diameter = 61.73;
+screen_step_diameter = 55.76;
+screen_outer_height = 16.00;
+screen_total_height = 20.00;
 radial_fit_clearance = 0.28;
 axial_fit_clearance = 0.35;
-thread_depth_extra_clearance = 0.15;
-support_free_thread_flank_angle_from_horizontal = 45.00;
-support_free_thread_groove_outer_flat_axial_width = 0.55;
-thread_groove_radial_steps = 6;
 
-holder_collar_height = 10.00;
-collar_wall_thickness = 3.20;
+holder_collar_height = screen_total_height + axial_fit_clearance;
+collar_wall_thickness = 2.00;
 inner_lead_in_chamfer_height = 1.45;
 inner_lead_in_chamfer_radial_depth = 0.90;
 outer_edge_chamfer_height = 0.35;
@@ -30,9 +21,9 @@ outer_edge_chamfer_radial_depth = 0.22;
 
 mount_boss_width = 14.00;
 mount_boss_depth = 10.50;
-mount_boss_height = 9.50;
+mount_boss_height = holder_collar_height - 0.50;
 mount_boss_corner_radius = 2.30;
-mount_boss_wall_overlap = 2.80;
+mount_boss_wall_overlap = 1.20;
 mount_boss_bottom_z = 0.00;
 
 rod_length = 82.00;
@@ -50,23 +41,17 @@ grip_wave_wrap_radius = 9.25;
 grip_wave_depth_radius = 9.5;
 grip_wave_depth = 2.65;
 
-show_thread_clearance_preview = false;
-
-thread_slices_per_turn = 32;
-
-male_thread_root_radius = male_thread_root_diameter / 2;
-male_thread_crest_radius = male_thread_crest_diameter / 2;
-female_bore_radius = male_thread_root_radius + radial_fit_clearance;
-thread_pitch = thread_axial_height + thread_axial_gap;
-thread_groove_radial_depth = (male_thread_crest_radius - male_thread_root_radius) + radial_fit_clearance + thread_depth_extra_clearance;
-thread_groove_outer_radius = female_bore_radius + thread_groove_radial_depth;
-support_free_thread_opening_axial_height = max(
-    thread_axial_height + axial_fit_clearance,
-    support_free_thread_groove_outer_flat_axial_width + 2 * thread_groove_radial_depth / tan(support_free_thread_flank_angle_from_horizontal)
-);
-collar_outer_radius = thread_groove_outer_radius + collar_wall_thickness;
-threaded_section_z_offset = (holder_collar_height - threaded_section_height) / 2;
-thread_slice_count = ceil(thread_slices_per_turn * threaded_section_height / thread_pitch);
+screen_outer_radius = screen_outer_diameter / 2;
+screen_step_radius = screen_step_diameter / 2;
+outer_socket_radius = screen_outer_radius + radial_fit_clearance;
+step_socket_radius = screen_step_radius + radial_fit_clearance;
+screen_step_height = screen_total_height - screen_outer_height;
+screen_shoulder_z = screen_step_height + axial_fit_clearance;
+collar_outer_radius = outer_socket_radius + collar_wall_thickness;
+support_tab_count = 6;
+support_tab_arc_degrees = 18;
+support_tab_gap_arc_degrees = 360 / support_tab_count - support_tab_arc_degrees;
+support_tab_gap_segments = 8;
 
 mount_boss_center_x = -collar_outer_radius - mount_boss_depth / 2 + mount_boss_wall_overlap;
 mount_boss_center_y = 0.00;
@@ -102,12 +87,6 @@ difference() {
     }
 
     internal_holder_clearance();
-}
-
-if (show_thread_clearance_preview) {
-    color(thread_preview_color, 0.35)
-    translate([0, 0, threaded_section_z_offset])
-    support_free_internal_helical_thread_groove_cutter();
 }
 
 module collar_outer_body() {
@@ -189,121 +168,50 @@ module oriented_scaled_sphere_along_rod(scale_along_rod, scale_side_to_side, sca
 
 module internal_holder_clearance() {
     translate([0, 0, -1.00])
-    cylinder(h = holder_collar_height + 2.00, r = female_bore_radius);
+    cylinder(h = screen_shoulder_z + 1.00, r = step_socket_radius);
 
-    translate([0, 0, threaded_section_z_offset])
-    support_free_internal_helical_thread_groove_cutter();
+    support_tab_gap_cutters();
 
-    translate([0, 0, -0.02])
-    cylinder(
-        h = inner_lead_in_chamfer_height + 0.04,
-        r1 = female_bore_radius + inner_lead_in_chamfer_radial_depth,
-        r2 = female_bore_radius
-    );
+    translate([0, 0, screen_shoulder_z])
+    cylinder(h = holder_collar_height - screen_shoulder_z + 1.00, r = outer_socket_radius);
 
     translate([0, 0, holder_collar_height - inner_lead_in_chamfer_height - 0.02])
     cylinder(
         h = inner_lead_in_chamfer_height + 0.04,
-        r1 = female_bore_radius,
-        r2 = female_bore_radius + inner_lead_in_chamfer_radial_depth
+        r1 = outer_socket_radius,
+        r2 = outer_socket_radius + inner_lead_in_chamfer_radial_depth
     );
 }
 
-module support_free_internal_helical_thread_groove_cutter() {
-    for (thread_start_index = [0 : thread_start_count - 1]) {
-        rotate([0, 0, thread_phase_degrees + 360 * thread_start_index / thread_start_count])
-        helical_thread_groove_cutter_polyhedron();
+module support_tab_gap_cutters() {
+    for (tab_index = [0 : support_tab_count - 1]) {
+        rotate([0, 0, (tab_index + 0.5) * 360 / support_tab_count])
+        linear_extrude(height = screen_shoulder_z + 1.00)
+        annular_sector_2d(
+            step_socket_radius - 0.02,
+            outer_socket_radius + 0.02,
+            support_tab_gap_arc_degrees,
+            support_tab_gap_segments
+        );
     }
 }
 
-module helical_thread_groove_cutter_polyhedron() {
-    polyhedron(
-        points = [
-            for (slice_index = [0 : thread_slice_count])
-            for (radial_index = [0 : thread_groove_radial_steps])
-            for (side_index = [0 : 1])
-            helical_thread_groove_point(slice_index, radial_index, side_index)
+module annular_sector_2d(inner_radius, outer_radius, arc_degrees, segment_count) {
+    half_arc = arc_degrees / 2;
+
+    polygon(concat(
+        [
+            for (segment_index = [0 : segment_count])
+            let(angle = -half_arc + arc_degrees * segment_index / segment_count)
+            [outer_radius * cos(angle), outer_radius * sin(angle)]
         ],
-        faces = concat(
-            [
-                for (slice_index = [0 : thread_slice_count - 1])
-                for (radial_index = [0 : thread_groove_radial_steps - 1])
-                [
-                    helical_thread_groove_point_index(slice_index, radial_index, 0),
-                    helical_thread_groove_point_index(slice_index + 1, radial_index, 0),
-                    helical_thread_groove_point_index(slice_index + 1, radial_index + 1, 0),
-                    helical_thread_groove_point_index(slice_index, radial_index + 1, 0)
-                ]
-            ],
-            [
-                for (slice_index = [0 : thread_slice_count - 1])
-                for (radial_index = [0 : thread_groove_radial_steps - 1])
-                [
-                    helical_thread_groove_point_index(slice_index, radial_index, 1),
-                    helical_thread_groove_point_index(slice_index, radial_index + 1, 1),
-                    helical_thread_groove_point_index(slice_index + 1, radial_index + 1, 1),
-                    helical_thread_groove_point_index(slice_index + 1, radial_index, 1)
-                ]
-            ],
-            [
-                for (slice_index = [0 : thread_slice_count - 1])
-                [
-                    helical_thread_groove_point_index(slice_index, 0, 0),
-                    helical_thread_groove_point_index(slice_index, 0, 1),
-                    helical_thread_groove_point_index(slice_index + 1, 0, 1),
-                    helical_thread_groove_point_index(slice_index + 1, 0, 0)
-                ]
-            ],
-            [
-                for (slice_index = [0 : thread_slice_count - 1])
-                [
-                    helical_thread_groove_point_index(slice_index, thread_groove_radial_steps, 0),
-                    helical_thread_groove_point_index(slice_index + 1, thread_groove_radial_steps, 0),
-                    helical_thread_groove_point_index(slice_index + 1, thread_groove_radial_steps, 1),
-                    helical_thread_groove_point_index(slice_index, thread_groove_radial_steps, 1)
-                ]
-            ],
-            [
-                for (radial_index = [0 : thread_groove_radial_steps - 1])
-                [
-                    helical_thread_groove_point_index(0, radial_index, 0),
-                    helical_thread_groove_point_index(0, radial_index + 1, 0),
-                    helical_thread_groove_point_index(0, radial_index + 1, 1),
-                    helical_thread_groove_point_index(0, radial_index, 1)
-                ]
-            ],
-            [
-                for (radial_index = [0 : thread_groove_radial_steps - 1])
-                [
-                    helical_thread_groove_point_index(thread_slice_count, radial_index, 0),
-                    helical_thread_groove_point_index(thread_slice_count, radial_index, 1),
-                    helical_thread_groove_point_index(thread_slice_count, radial_index + 1, 1),
-                    helical_thread_groove_point_index(thread_slice_count, radial_index + 1, 0)
-                ]
-            ]
-        ),
-        convexity = 10
-    );
+        [
+            for (segment_index = [segment_count : -1 : 0])
+            let(angle = -half_arc + arc_degrees * segment_index / segment_count)
+            [inner_radius * cos(angle), inner_radius * sin(angle)]
+        ]
+    ));
 }
-
-function helical_thread_groove_point(slice_index, radial_index, side_index) =
-    let(
-        axial_fraction = slice_index / thread_slice_count,
-        radial_fraction = radial_index / thread_groove_radial_steps,
-        radius = female_bore_radius + thread_groove_radial_depth * radial_fraction + (radial_index == 0 ? -0.02 : radial_index == thread_groove_radial_steps ? 0.02 : 0),
-        axial_width = support_free_thread_groove_outer_flat_axial_width + (support_free_thread_opening_axial_height - support_free_thread_groove_outer_flat_axial_width) * (1 - radial_fraction),
-        half_sector_angle = 180 * axial_width / thread_pitch,
-        center_angle = thread_twist_direction * 360 * threaded_section_height * axial_fraction / thread_pitch,
-        angle = center_angle + (side_index == 0 ? -half_sector_angle : half_sector_angle)
-    )
-    [
-        radius * cos(angle),
-        radius * sin(angle),
-        threaded_section_height * axial_fraction
-    ];
-
-function helical_thread_groove_point_index(slice_index, radial_index, side_index) =
-    ((slice_index * (thread_groove_radial_steps + 1) + radial_index) * 2) + side_index;
 
 function point_along_rod(distance_from_base) = [
     rod_base_point[0] + distance_from_base * rod_direction_vector[0],

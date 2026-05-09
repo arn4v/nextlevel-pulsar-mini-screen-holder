@@ -1,4 +1,4 @@
-# MHW3Bomber Rain Melo Holder
+# Nextlevel Pulsar Mini screen holder
 
 ![Rendered holder](holder.png)
 
