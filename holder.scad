@@ -9,11 +9,11 @@ screen_outer_diameter = 61.73;
 screen_step_diameter = 55.76;
 screen_outer_height = 16.00;
 screen_total_height = 20.00;
-radial_fit_clearance = 0.28;
+radial_fit_clearance = 0.60;
 axial_fit_clearance = 0.35;
-support_tab_thickness = 1.20;
+support_rim_thickness = 1.20;
 
-holder_collar_height = screen_outer_height + axial_fit_clearance + support_tab_thickness;
+holder_collar_height = screen_outer_height + axial_fit_clearance + support_rim_thickness;
 collar_wall_thickness = 2.00;
 inner_lead_in_chamfer_height = 1.45;
 inner_lead_in_chamfer_radial_depth = 0.90;
@@ -46,12 +46,8 @@ screen_outer_radius = screen_outer_diameter / 2;
 screen_step_radius = screen_step_diameter / 2;
 outer_socket_radius = screen_outer_radius + radial_fit_clearance;
 step_socket_radius = screen_step_radius + radial_fit_clearance;
-screen_shoulder_z = support_tab_thickness;
+screen_shoulder_z = support_rim_thickness;
 collar_outer_radius = outer_socket_radius + collar_wall_thickness;
-support_tab_count = 6;
-support_tab_arc_degrees = 18;
-support_tab_gap_arc_degrees = 360 / support_tab_count - support_tab_arc_degrees;
-support_tab_gap_segments = 8;
 
 mount_boss_center_x = -collar_outer_radius - mount_boss_depth / 2 + mount_boss_wall_overlap;
 mount_boss_center_y = 0.00;
@@ -170,8 +166,6 @@ module internal_holder_clearance() {
     translate([0, 0, -1.00])
     cylinder(h = screen_shoulder_z + 1.00, r = step_socket_radius);
 
-    support_tab_gap_cutters();
-
     translate([0, 0, screen_shoulder_z])
     cylinder(h = holder_collar_height - screen_shoulder_z + 1.00, r = outer_socket_radius);
 
@@ -181,36 +175,6 @@ module internal_holder_clearance() {
         r1 = outer_socket_radius,
         r2 = outer_socket_radius + inner_lead_in_chamfer_radial_depth
     );
-}
-
-module support_tab_gap_cutters() {
-    for (tab_index = [0 : support_tab_count - 1]) {
-        rotate([0, 0, (tab_index + 0.5) * 360 / support_tab_count])
-        linear_extrude(height = screen_shoulder_z + 1.00)
-        annular_sector_2d(
-            step_socket_radius - 0.02,
-            outer_socket_radius + 0.02,
-            support_tab_gap_arc_degrees,
-            support_tab_gap_segments
-        );
-    }
-}
-
-module annular_sector_2d(inner_radius, outer_radius, arc_degrees, segment_count) {
-    half_arc = arc_degrees / 2;
-
-    polygon(concat(
-        [
-            for (segment_index = [0 : segment_count])
-            let(angle = -half_arc + arc_degrees * segment_index / segment_count)
-            [outer_radius * cos(angle), outer_radius * sin(angle)]
-        ],
-        [
-            for (segment_index = [segment_count : -1 : 0])
-            let(angle = -half_arc + arc_degrees * segment_index / segment_count)
-            [inner_radius * cos(angle), inner_radius * sin(angle)]
-        ]
-    ));
 }
 
 function point_along_rod(distance_from_base) = [
