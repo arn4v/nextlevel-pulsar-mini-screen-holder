@@ -9,7 +9,7 @@ screen_outer_diameter = 61.73;
 screen_step_diameter = 55.76;
 screen_outer_height = 16.00;
 screen_total_height = 20.00;
-radial_fit_clearance = 0.60;
+radial_fit_clearance = 0.40;
 axial_fit_clearance = 0.35;
 support_rim_thickness = 1.20;
 
